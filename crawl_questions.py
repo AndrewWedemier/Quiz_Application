@@ -105,7 +105,23 @@ def create_table_and_insert_subtopic( tableOneData, dbLocation ):
     command = generate_insert_commands( tableName, tableFields, tableValues )
     execute_command(command, dbLocation)
 
+def create_and_insert_into_question_solution_table( dbLocation, values ):
+    ''' @params: dbLocation - Location of database
+        @params: values ["/full/file/path/to/question/or/solution", display_number_of_row_pixels,
+         display_number_of_column pixels, question_or_solution, question_difficulty ]
+        - full string path to the question or solution'''
 
+    myCommand = '''CREATE TABLE IF NOT EXISTS questions_and_solutions 
+             (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+             file_location TEXT UNIQUE, row_pixels_property INTEGER, column_pixels_property INTEGER,
+             question_or_solution INTEGER, question_difficutly TEXT )'''
+    execute_command(myCommand, dbLocation)
+    
+    myCommand = '''INSERT INTO questions_and_solutions ( file_location, row_pixels_property, column_pixels_property, 
+        question_or_solution, question_difficutly ) VALUES ''' +  '''( 
+        ''' + "'"+ values[0] +"'"+ ", " + str(values[1]) + ", " + str(values[2]) +", " + str(values[3]) + "," + "'"+ values[4] + "'" + " )"
+
+    execute_command(myCommand, dbLocation )
 
 def crawl_and_update_database(dbLocation, startSearchPath):
     topicsList = set()
@@ -177,8 +193,8 @@ def crawl_and_update_database(dbLocation, startSearchPath):
                              [ myLookup[value],  myLookup[ heading[ startPos + idx -1 ] ], 
                              myLookup[  bottomLevelTopic ], myLookup[ topLevelTopic ],
                               myLookup[bottomLevelTopic], questionOrSolutionFolder ]  ] , dbLocation  )                        
-                        
-
+            myValues = [ key, 800, 600, questionOrSolutionFolder, "medium"]
+            create_and_insert_into_question_solution_table(dbLocation, myValues)
                     
 
 
