@@ -15,19 +15,23 @@ def create_table( dataBaseFileLocation , dbCommandString ):
     cur.execute(  dbCommandString )
     conn.close()
 
-''' deprecate this function
-def create_list_of_subtopic_table_commands( numberOfTopics ):
-    tableNames = []
-    commandList = []
-    for i in range( 1, numberOfTopics + 1 , 1 ):
-        tableNames.append('SubTopic'+str(i) )
 
-    for name in tableNames:
-        command = create_subtopic_table_command( name )
-        commandList.append(command)
+def create_subject_table( dataBaseFileLocation, dbCommandString ):
 
-    return commandList
-'''
+    return 0 
+    ''' deprecate this function
+    def create_list_of_subtopic_table_commands( numberOfTopics ):
+        tableNames = []
+        commandList = []
+        for i in range( 1, numberOfTopics + 1 , 1 ):
+            tableNames.append('SubTopic'+str(i) )
+
+        for name in tableNames:
+            command = create_subtopic_table_command( name )
+            commandList.append(command)
+
+        return commandList
+    '''
 
 def create_subtopic_table_command( name ):
 
@@ -130,15 +134,111 @@ def crawl_and_update_database(dbLocation, startSearchPath):
     filesDict = {}
     tables = {}
     pathSplit = startSearchPath.split('/')
+    subjectsDict = {}
+    subTopicsDict = {}
+    questionsDict = {}
+    solutionsDict = {}
+    responsesDict = {}
+    matchedQuestionsAndSolutionsDict = {}
+    unmatchedQuestionsAndSolutionsDict = {}
+    matchedQuestionsAndResponsesDict = {}
+    unmatchedQuestionsAndResponsesDict = {}
+    depthCount = 0
 
+    for root, folders, files in os.walk(startSearchPath) :
+        #print("")
+        #print("root: {}".format( root ) )
+        #print("folders: {}".format( folders ) )
+        #print("files: {}".format( files ) )
+        rootSplit = root.split('/')
+        filePathWithrootRemoved = [level for level in rootSplit if level not in 
+                                            (pathSplit+['Questions', 'Solutions']) ]
+        for file in files:
+            if "ignore" not in folders:
+                for topic in filePathWithrootRemoved: 
+                    if len(filePathWithrootRemoved) > 1 and depthCount == 0:
+                        subjectsDict[ topic ] = subjectsDict.get( topic ,
+                        [] ) + [ [ os.path.join(root, file), filePathWithrootRemoved[depthCount + 1] ] ]
+                    else:
+                        if  depthCount == len(filePathWithrootRemoved) - 1 :
+                            subTopicsDict[ topic ] = subTopicsDict.get(
+                                    topic, []  ) + [ [ [ os.path.join(root, file), "N/A"] ] ]
+
+                        else:
+                            if len(filePathWithrootRemoved) > 1:
+                                subTopicsDict[ topic ] = subTopicsDict.get(
+                                        topic , [] ) + [ [ os.path.join(root, file), 
+                                            filePathWithrootRemoved[depthCount + 1] ] ]                            
+                    depthCount += 1
+            
+                depthCount = 0
+                qkey = os.path.join( root, file )
+                #start=root.find("Questions")
+                #print(start)
+                questionsInstance = root.rfind("Questions")
+                skey = os.path.join( qkey[:questionsInstance],"Solutions",file)
+                rkey = os.path.join( qkey[:questionsInstance], "Responses", file )
+                questionsDict[qkey] = questionsDict.get(qkey, [file, 720 , 480, "Medium" ])
+                
+                if os.path.isfile(skey):
+                    matchedQuestionsAndSolutionsDict[qkey] = matchedQuestionsAndSolutionsDict.get( qkey, skey)
+                    solutionsDict[skey] = solutionsDict.get(skey, [file, 720, 480])
+                else:
+                    unmatchedQuestionsAndSolutionsDict[qkey] = unmatchedQuestionsAndSolutionsDict.get( qkey, skey ) 
+
+                if os.path.isfile(rkey):
+                     matchedQuestionsAndResponsesDict[qkey] = matchedQuestionsAndResponsesDict.get( qkey, rkey )
+                     responsesDict[rkey] = responsesDict.get(rkey,[file, 720, 480] )
+                else:
+                    unmatchedQuestionsAndResponsesDict[qkey] = unmatchedQuestionsAndResponsesDict.get( qkey,  rkey ) 
+
+
+            else:
+                pass
+
+    for x in subTopicsDict:
+        print( "SUBTOPIC: {}  QUESTION: {}".format(x ,subTopicsDict[x] ), "\n")
+
+    for x in subjectsDict:
+        print( "SUBJECT: {}   QUESTION: {}".format(x, subjectsDict[x] ), "\n")
+
+    for x in questionsDict:
+        print( "Questions table: {}".format(x), questionsDict[x], "\n" )
+    
+    for x in matchedQuestionsAndSolutionsDict:
+        print( "QUESTION: {} SOLUTION: {}".format(x, matchedQuestionsAndSolutionsDict[x] ), "\n" )
+
+    for x in unmatchedQuestionsAndSolutionsDict:
+        print( "QUESTION WITH NO FOUND SOLUTION: {}".format(x), "\n" )    
+            #older implemtnations starts here   
+    
+def crawl_and_update_database_2(dbLocation, startSearchPath):
+    topicsList = set()
+    subTopics = set()
+    commandList = []
+    filesDict = {}
+    tables = {}
+    pathSplit = startSearchPath.split('/')
+    subjects = set()
+    subjectTable = {}
+    subTopicTable = {}
     for root, folders, files in os.walk(startSearchPath) :
         if  files: 
             filesDict[root] = filesDict.get( root, files )
             rootSplit = root.split('/')
-            for topic in rootSplit:
-                if topic not in pathSplit:
-                    topicsList.add(topic)
+            pathSplit.append("Questions")
+            pathSplit.append("Solutions")
+            topics = [x for x in rootSplit if x not in  pathSplit ]
+            for idx, topic in enumerate(topics):
+                if idx == 0:
+                    subjects.add(topic)
+                    subjectTable[topic] = subjectTable.get(topic, []).append( [ os.path.join( root, files ), topics[idx] ] )
+                else:
+                    subTopics.add(topic)
+                    subTopicTable[topic] = subTopicTable.get(topic, []).append( [ os.path.join( root, files ) , topics[idx] ] )
 
+    print( subjectTable, subTopicTable)
+    '''
 
     for topic in topicsList:
         if topic not in set( ('Solutions', 'Questions')) :
@@ -172,37 +272,11 @@ def crawl_and_update_database(dbLocation, startSearchPath):
                 questionOrSolutionFolder = 1
             else:
                 questionOrSolutionFolder = 2
-
-            for idx, value in enumerate( heading[startPos:-1] ):
-                if idx > 0 and idx < len( heading[startPos:] ) -2 :
-                    create_table_and_insert_subtopic( 
-                        [ 'subTopic'+str( idx+1 ) , tableColumns,
-                            [ myLookup[value], myLookup[ heading[ startPos + idx -1 ] ], 
-                            myLookup[ heading[ startPos+ idx + 1] ], myLookup[ topLevelTopic ],
-                            myLookup[bottomLevelTopic], questionOrSolutionFolder ]  ] , dbLocation  )                    
-                else:
-                    if idx == 0:
-                        create_table_and_insert_subtopic( 
-                            [ 'subTopic'+str( idx+1 ) , tableColumns,
-                             [ myLookup[value], myLookup[value], 
-                             myLookup[ heading[ startPos+ idx + 1] ], myLookup[ topLevelTopic ],
-                              myLookup[bottomLevelTopic], questionOrSolutionFolder ]  ] , dbLocation  )
-                    else:
-                        create_table_and_insert_subtopic( 
-                            [ 'subTopic'+str( idx+1 ) , tableColumns,
-                             [ myLookup[value],  myLookup[ heading[ startPos + idx -1 ] ], 
-                             myLookup[  bottomLevelTopic ], myLookup[ topLevelTopic ],
-                              myLookup[bottomLevelTopic], questionOrSolutionFolder ]  ] , dbLocation  )                        
-            myValues = [ key, 800, 600, questionOrSolutionFolder, "medium"]
+            
             create_and_insert_into_question_solution_table(dbLocation, myValues)
-                    
-
-
-            #create_table_and_insert_subtopic( )
-
-    #print(pathSplit)
-    
-    #print(filesDict)
+            
+            for idx, value in enumerate( heading[startPos:-1] ):
+    '''     
 
 if __name__ == '__main__' :
     dbLocation = r'/media/andrew/Hummingbird_AI/Questions_and_Answers/QuestionsAndSolutions'
