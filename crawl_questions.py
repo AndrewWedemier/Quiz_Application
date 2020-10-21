@@ -127,6 +127,51 @@ def create_and_insert_into_question_solution_table( dbLocation, values ):
 
     execute_command(myCommand, dbLocation )
 
+
+def create_questions_database(dbLocation, questionsToInsert ):
+    '''
+    @param dbLoction: String
+    @param questionsToInsert: dictionary 
+    @return: List of questions with primary_keys created
+    '''
+    connect = sqlite3.connect(dbLocation)
+    cursor = connect.cursor()
+    myCommand = '''CREATE TABLE IF NOT EXISTS Questions( 
+        id INTEGER NOT NULL PRIMARY KEY  AUTOINCREMENT UNIQUE,
+        full_path TEXT,
+        file_name TEXT,
+        number_of_horizontal_pixels INTEGER,
+        number_of_vertical_pixels INTEGER,
+        question_difficulty TEXT )
+        '''
+    cursor.execute(myCommand)
+
+    for key in questionsToInsert:       
+        cursor.execute( ''' INSERT INTO Questions 
+                    (
+                    file_name,
+                    full_path,
+                    number_of_horizontal_pixels,
+                    number_of_vertical_pixels,
+                    question_difficulty ) 
+                    VALUES (?, ?, ?, ?, ?)''',  
+                   ( questionsToInsert[key][0],
+                    key,
+                    questionsToInsert[key][1],
+                    questionsToInsert[key][2],
+                    questionsToInsert[key][3] ) )
+
+    connect.commit()
+
+    cursor.execute("SELECT id, full_path FROM Questions ")
+    questionPrimaryKeydict = {}
+    for cur in cursor:
+        questionPrimaryKeydict[ cur[1] ] = questionPrimaryKeydict.get( cur[1], cur[0] )
+    
+    return questionPrimaryKeydict
+
+
+
 def crawl_and_update_database(dbLocation, startSearchPath):
     topicsList = set()
     subTopics = []
@@ -210,73 +255,11 @@ def crawl_and_update_database(dbLocation, startSearchPath):
 
     for x in unmatchedQuestionsAndSolutionsDict:
         print( "QUESTION WITH NO FOUND SOLUTION: {}".format(x), "\n" )    
-            #older implemtnations starts here   
-    
-def crawl_and_update_database_2(dbLocation, startSearchPath):
-    topicsList = set()
-    subTopics = set()
-    commandList = []
-    filesDict = {}
-    tables = {}
-    pathSplit = startSearchPath.split('/')
-    subjects = set()
-    subjectTable = {}
-    subTopicTable = {}
-    for root, folders, files in os.walk(startSearchPath) :
-        if  files: 
-            filesDict[root] = filesDict.get( root, files )
-            rootSplit = root.split('/')
-            pathSplit.append("Questions")
-            pathSplit.append("Solutions")
-            topics = [x for x in rootSplit if x not in  pathSplit ]
-            for idx, topic in enumerate(topics):
-                if idx == 0:
-                    subjects.add(topic)
-                    subjectTable[topic] = subjectTable.get(topic, []).append( [ os.path.join( root, files ), topics[idx] ] )
-                else:
-                    subTopics.add(topic)
-                    subTopicTable[topic] = subTopicTable.get(topic, []).append( [ os.path.join( root, files ) , topics[idx] ] )
+            #older implemtnations starts here  
 
-    print( subjectTable, subTopicTable)
-    '''
+    result = create_questions_database(dbLocation, questionsDict ) 
+    print( "The results are: {}".format(result) )
 
-    for topic in topicsList:
-        if topic not in set( ('Solutions', 'Questions')) :
-            command = generate_insert_commands('Topic',['name'],[topic] )
-            commandList.append(command)
-    
-    setup_database(dbLocation)
-    for myCommand in commandList:
-        execute_command( myCommand, dbLocation )
-
-    myCommand= generate_fetch_topic_id_sql_commands('Topic', topicsList )
-    results = fetch_command_results(myCommand, dbLocation)
-    myLookup = { key:value for (value, key) in results }
-    
-    for key in filesDict:
-        directoryLength = len( pathSplit )
-        filePathLength = len( key.split( '/' ) )
-        
-        startPos = filePathLength - directoryLength -1
-        endPos = filePathLength
-        tableValues = []
-        if startPos > 0:
-            #= key[startPos]
-            tableColumns = ['topicNumber', 'fk_prev_topic_id', 'fk_next_topic_id',
-                'toplevel_topic_id',  'bottomlevel_topic_id', 'question_solution' ]
-            heading = key.split('/')
-            topLevelTopic = heading[startPos]
-            bottomLevelTopic = heading[-2]
-            questionOrSolution = heading[-1]
-            if questionOrSolution =='Questions':
-                questionOrSolutionFolder = 1
-            else:
-                questionOrSolutionFolder = 2
-            
-            create_and_insert_into_question_solution_table(dbLocation, myValues)
-            
-            for idx, value in enumerate( heading[startPos:-1] ):
-    '''     
 
 if __name__ == '__main__' :
     dbLocation = r'/media/andrew/Hummingbird_AI/Questions_and_Answers/QuestionsAndSolutions'
