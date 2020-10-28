@@ -15,24 +15,6 @@ def create_table( dataBaseFileLocation , dbCommandString ):
     cur.execute(  dbCommandString )
     conn.close()
 
-
-def create_subject_table( dataBaseFileLocation, dbCommandString ):
-
-    return 0 
-    ''' deprecate this function
-    def create_list_of_subtopic_table_commands( numberOfTopics ):
-        tableNames = []
-        commandList = []
-        for i in range( 1, numberOfTopics + 1 , 1 ):
-            tableNames.append('SubTopic'+str(i) )
-
-        for name in tableNames:
-            command = create_subtopic_table_command( name )
-            commandList.append(command)
-
-        return commandList
-    '''
-
 def create_subtopic_table_command( name ):
 
     command = 'CREATE TABLE IF NOT EXISTS '+ name +''' ( id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE, 
@@ -207,13 +189,14 @@ def crawl_and_update_database(dbLocation, startSearchPath):
                     else:
                         if  depthCount == len(filePathWithrootRemoved) - 1 :
                             subTopicsDict[ topic ] = subTopicsDict.get(
-                                    topic, []  ) + [ [ [ os.path.join(root, file), "N/A"] ] ]
+                                    topic, []  ) +  [ [ os.path.join(root, file), "N/A"] ] 
 
                         else:
                             if len(filePathWithrootRemoved) > 1:
                                 subTopicsDict[ topic ] = subTopicsDict.get(
                                         topic , [] ) + [ [ os.path.join(root, file), 
-                                            filePathWithrootRemoved[depthCount + 1] ] ]                            
+                                            filePathWithrootRemoved[depthCount + 1] ] ] 
+                                                         
                     depthCount += 1
             
                 depthCount = 0
@@ -226,23 +209,51 @@ def crawl_and_update_database(dbLocation, startSearchPath):
                 questionsDict[qkey] = questionsDict.get(qkey, [file, 720 , 480, "Medium" ])
                 
                 if os.path.isfile(skey):
-                    matchedQuestionsAndSolutionsDict[qkey] = matchedQuestionsAndSolutionsDict.get( qkey, skey)
+                    matchedQuestionsAndSolutionsDict[qkey] = matchedQuestionsAndSolutionsDict.get( qkey, [skey])
                     solutionsDict[skey] = solutionsDict.get(skey, [file, 720, 480])
                 else:
-                    unmatchedQuestionsAndSolutionsDict[qkey] = unmatchedQuestionsAndSolutionsDict.get( qkey, skey ) 
+                    unmatchedQuestionsAndSolutionsDict[qkey] = unmatchedQuestionsAndSolutionsDict.get( qkey, [skey] ) 
 
                 if os.path.isfile(rkey):
-                     matchedQuestionsAndResponsesDict[qkey] = matchedQuestionsAndResponsesDict.get( qkey, rkey )
+                     matchedQuestionsAndResponsesDict[qkey] = matchedQuestionsAndResponsesDict.get( qkey, [rkey] )
                      responsesDict[rkey] = responsesDict.get(rkey,[file, 720, 480] )
                 else:
-                    unmatchedQuestionsAndResponsesDict[qkey] = unmatchedQuestionsAndResponsesDict.get( qkey,  rkey ) 
+                    unmatchedQuestionsAndResponsesDict[qkey] = unmatchedQuestionsAndResponsesDict.get( qkey,  [rkey] ) 
 
 
             else:
                 pass
+    
+    results = create_questions_database(dbLocation, questionsDict )
+    
+    for key in results:
+        if key in questionsDict.keys():
+            questionsDict[key] =  questionsDict[key] + [results[key]]
+        if key in matchedQuestionsAndResponsesDict.keys():
+            matchedQuestionsAndResponsesDict[key] = matchedQuestionsAndResponsesDict[key] + [results[key]]
+        if key in matchedQuestionsAndSolutionsDict.keys():
+            matchedQuestionsAndSolutionsDict[key] = matchedQuestionsAndSolutionsDict[key] + [results[key]]
+    count= 0
+    for subject, sublist  in subjectsDict.items():
+        for idx, pair in enumerate(sublist):
+            for question in results:
+                if pair[0] == question and count == 0:
+                        count += 1
+                        subjectsDict[subject][idx] = subjectsDict[subject][idx] + [ results[question] ]
+                count = 0
+
+    for topic, questionsAndOther in subTopicsDict.items():
+        for idx, value in enumerate(questionsAndOther):
+            for questionFromDatabase, dataBaseID in results.items():
+                questionFromDictonary = value[0]
+                if  questionFromDatabase == questionFromDictonary:
+                    subTopicsDict[topic][idx] = subTopicsDict[topic][idx] + [dataBaseID]
+                       
+            
 
     for x in subTopicsDict:
-        print( "SUBTOPIC: {}  QUESTION: {}".format(x ,subTopicsDict[x] ), "\n")
+       print( "SUBTOPIC: {}  QUESTION: {}".format(x ,subTopicsDict[x] ), "\n")
+    
 
     for x in subjectsDict:
         print( "SUBJECT: {}   QUESTION: {}".format(x, subjectsDict[x] ), "\n")
@@ -257,8 +268,11 @@ def crawl_and_update_database(dbLocation, startSearchPath):
         print( "QUESTION WITH NO FOUND SOLUTION: {}".format(x), "\n" )    
             #older implemtnations starts here  
 
-    result = create_questions_database(dbLocation, questionsDict ) 
-    print( "The results are: {}".format(result) )
+
+    print( "The results are: {}".format(results) )
+
+
+    
 
 
 if __name__ == '__main__' :
