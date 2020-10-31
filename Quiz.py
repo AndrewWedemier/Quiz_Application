@@ -7,7 +7,7 @@ import sqlite3
 
 class GUI(Tk):
     """ Creation of a tool to help me remember all the info from my various
-        courses"""
+        courses """
     
     def __init__(self, myTitle):
         """ creating basic layout of quiz app"""
@@ -20,47 +20,67 @@ class GUI(Tk):
         
         
         file_menu = Menu(main_menu)
-        main_menu.add_cascade(label ="File", menu=file_menu, command=doNothing)
+        main_menu.add_cascade(label ="File", menu=file_menu)
         file_menu.add_command(label="New Quiz", command=self.new_quiz )
         edit_menu = Menu(main_menu)
-        main_menu.add_cascade(label='Edit',  menu=edit_menu, command=doNothing)
+        main_menu.add_cascade(label='Edit',  menu=edit_menu, )
         quiz_options = Menu(main_menu)
         
         main_menu.add_cascade(label='Quiz Options', menu=quiz_options)
         subjects = Menu(quiz_options)
         quiz_options.add_cascade(label ='Subjects', menu=subjects)
         quiz_options.add_command(label='Number of Questions')
-        #self.createCanvas()
-
+        self.createQuestionandResponseCanvas()   
+        self.response_image
         self.mainloop()
         self.img = ""
         self.img2 = ""
+         
 
-    def createCanvas(self):
 
-        h = ttk.Scrollbar(self, orient=HORIZONTAL)
-        v = ttk.Scrollbar(self, orient=VERTICAL)
-        canvas = Canvas(self, scrollregion=(0, 0, 2000, 2000), yscrollcommand=v.set, xscrollcommand=h.set)
-        #canvas.create_oval(10,10,100,100, fill='gray90')
-        h['command'] =canvas.xview
-        v['command'] =canvas.yview
-        ttk.Sizegrip(self).grid(column=1, row=1, sticky=(S,E))
-        img = '/home/andrew/Pictures/complex_number.png'
-        self.img = Image.open(img)
+    def createQuestionandResponseCanvas(self):
         
-        self.img2=ImageTk.PhotoImage(self.img)
+        questionFrame = Frame(self)
+        optionsFrame = Frame(self)
+        responseFrame = Frame(self)
 
-        canvas.create_image(800, 650, image=self.img2, anchor=CENTER)
-        frm = Frame(canvas, relief=GROOVE, borderwidth=2)
-        canvas.create_window(3000, 5000, window=frm, anchor=CENTER)
-        canvas.grid(column=0, row=0, sticky=(N,W,E,S))
-        h.grid(column=0, row=1, sticky=(W,E))
-        v.grid(column=1, row=0, sticky=(N,S))
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-        response1 = Button(canvas, text="A").pack(side=LEFT, fill=X, expand=YES, anchor=SW)
-        response2 = Button(canvas, text="B").pack(side=LEFT, fill=X, expand=YES, anchor=SW)
-        response3 = Button(canvas, text="C").pack(side=LEFT, fill=X, expand=YES, anchor=SW)
+        h_q = ttk.Scrollbar(questionFrame, orient=HORIZONTAL)
+        v_q = ttk.Scrollbar(questionFrame, orient=VERTICAL)
+
+        canvas_q = Canvas(questionFrame, width=1800, height=1100, 
+                scrollregion=(0, 0, 2000, 2000), yscrollcommand=v_q.set,
+                 xscrollcommand=h_q.set)
+        h_q['command'] =canvas_q.xview
+        v_q['command'] =canvas_q.yview
+        #ttk.Sizegrip(questionFrame).grid(column=1, row=1, sticky=(S,E))
+        img = '''/media/andrew/Hummingbird_AI/Questions_and_Answers/Linear Algebra/1. ax-b-and-the-four-subspaces/1. the-geometry-of-linear-equations/Exercises on the geometry of linear equations/Questions/1.1 -Exercises on the Geometry of Linear equestions.png'''
+        self.img = Image.open(img)
+        self.img2=ImageTk.PhotoImage(self.img)
+        canvas_q.create_image(800, 650, image=self.img2, anchor=N)
+
+        canvas_q.grid(column=0, row=0, sticky=(N,W,E,S))
+        h_q.grid(column=0, row=1, sticky=(W,E))
+        v_q.grid(column=1, row=0, sticky=(N,S))
+        #self.grid_columnconfigure(0, weight=1)
+        #self.grid_rowconfigure(0, weight=1)
+        questionFrame.grid(column=0, row =0, sticky=(N,W,E) )
+
+        h_r = ttk.Scrollbar( responseFrame, orient=HORIZONTAL )
+        v_r = ttk.Scrollbar( responseFrame, orient=VERTICAL )
+        canvas_r = Canvas( responseFrame, width = 1800,
+                 height = 500, scrollregion=(0, 0, 2000, 2000),
+                 yscrollcommand=h_r.set, xscrollcommand=v_r.set)
+        
+        h_r['command'] = canvas_r.xview
+        v_r['command'] = canvas_r.yview
+        img_response = "/media/andrew/Hummingbird_AI/Questions_and_Answers/Linear Algebra/1. ax-b-and-the-four-subspaces/1. the-geometry-of-linear-equations/Exercises on the geometry of linear equations/Solutions/1.1 -Exercises on the Geometry of Linear equestions.png"
+        self.response_image = ImageTk.PhotoImage( Image.open( img_response) )
+        canvas_r.create_image (800, 600, image=self.response_image, anchor=CENTER )
+        canvas_r.grid( column=0, row=0, sticky=(N,W,E) )
+        h_r.grid(column=0, row=1, sticky=(W,E) )
+        v_r.grid(column=1, row=0, sticky=(N,S) )
+        responseFrame.grid(column=0, row=0, sticky=(S,W,E) )
+
 
     def new_quiz(self):
         
@@ -120,4 +140,5 @@ class QuestionDataBase:
 
 
 if __name__ == '__main__':
-    #Quiz1 = GUI("Hummingmind Quiz Program")\
+    Quiz1 = GUI("Hummingmind Quiz Program")
+    #Quiz1.createQuestionandResponseCanvas()
